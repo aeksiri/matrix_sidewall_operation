@@ -69,9 +69,28 @@ class ActionServer():
     
     def scan_callback(self, raw_msg):
         self.msg = raw_msg
+        # print("scan_callback")
     
     def update_command_vel(self, linear_vel, angular_vel):
         msg = Twist()
+
+        max_linear_vel = 0.7
+        max_angular_vel = max_linear_vel * 2
+
+        if(linear_vel >= max_linear_vel):
+            linear_vel = max_linear_vel
+        elif(linear_vel <= -max_linear_vel):
+            linear_vel = -max_linear_vel
+        else:
+            pass
+
+        if(angular_vel >= max_angular_vel):
+            angular_vel = max_angular_vel
+        elif(angular_vel <= -max_angular_vel):
+            angular_vel = -max_angular_vel
+        else:
+            pass
+
         msg.linear.x = linear_vel
         msg.angular.z = angular_vel
         self.pub_cmd_vel.publish(msg)
@@ -105,6 +124,7 @@ class ActionServer():
         while not finish:
             # print(text)
             if self.a_server.is_preempt_requested():
+                self.update_command_vel(0, 0)
                 rospy.logwarn("Preemting !!!!!")
                 
                 success = False
@@ -152,157 +172,258 @@ class ActionServer():
             elif sequence == Sequence.SIDEWALL_TRACKING.value:
                 text = "SIDEWALL_TRACKING"
 
-                # --------------------------------------------------------------------------------------#
-                #
-                #
-                #                           SideWall Following Control Begin
-                #
-                #---------------------------------------------------------------------------------------#
-                # lidar_data = rospy.wait_for_message('/scan_f_raw', LaserScan, timeout=1)
-                # self.msg = lidar_data
-                right = self.msg.ranges[45]
-                left = self.msg.ranges[135]
+                rightside_wall = goal.right_wall
+                leftside_wall = goal.left_wall
 
-                stop_max_range = 3.0
-                stop_min_range = 0.01
+                kp = 3.0
 
-                stop_zone_left = np.array(self.msg.ranges[0:45]) #SMR200
-                # stop_zone_left = np.array(self.msg.ranges[0:300]) #SDR100
-                # print(len(stop_zone_left))
-                # print(stop_zone_left)
+                if ((leftside_wall == True) and (rightside_wall == False)):
+                    # --------------------------------------------------------------------------------------#
+                    #
+                    #
+                    #                           LEFT - SideWall Following Control Begin
+                    #
+                    #---------------------------------------------------------------------------------------#
+                    # lidar_data = rospy.wait_for_message('/scan_f_raw', LaserScan, timeout=1)
+                    # self.msg = lidar_data
+                    # print(len(self.msg.ranges))
+                    left_front = self.msg.ranges[45]
+                    left_rear = self.msg.ranges[135]
 
-                stop_zone_left_clipped = np.clip(stop_zone_left,stop_min_range,stop_max_range)
-                #print(len(stop_zone_left_clipped))
-                #print(stop_zone_left_clipped)
-                #print(np.mean(stop_zone_left_clipped))
-                
-                stop_zone_right = np.array(self.msg.ranges[340:358]) #SMR200
-                # stop_zone_right = np.array(self.msg.ranges[3300:3600]) #SDR100
-                # print(len(stop_zone_right))
-                # print(stop_zone_right)
+                    stop_max_range = 3.0
+                    stop_min_range = 0.01
 
-                stop_zone_right_clipped = np.clip(stop_zone_right,stop_min_range,stop_max_range)
-                #print(len(stop_zone_right_clipped))
-                # print(np.mean(stop_zone_right_clipped))
+                    stop_zone_left = np.array(self.msg.ranges[0:45]) #SMR200
+                    # stop_zone_left = np.array(self.msg.ranges[0:300]) #SDR100
+                    # print(len(stop_zone_left))
+                    # print(stop_zone_left)
 
-                # stop_zone_clipped = (stop_zone_left_clipped + stop_zone_right_clipped)
-                # stop_zone_clipped = np.concatenate(stop_zone_left_clipped, stop_zone_right_clipped)
-                stop_zone_clipped = np.hstack((stop_zone_left_clipped, stop_zone_right_clipped))
-                #print(len(stop_zone_clipped))
-                #print(stop_zone_clipped)
-                stop_zone_avr = np.mean(stop_zone_clipped)
-                #print(stop_zone_avr)
+                    stop_zone_left_clipped = np.clip(stop_zone_left,stop_min_range,stop_max_range)
+                    #print(len(stop_zone_left_clipped))
+                    #print(stop_zone_left_clipped)
+                    #print(np.mean(stop_zone_left_clipped))
+                    
+                    stop_zone_right = np.array(self.msg.ranges[340:358]) #SMR200
+                    # stop_zone_right = np.array(self.msg.ranges[3300:3600]) #SDR100
+                    # print(len(stop_zone_right))
+                    # print(stop_zone_right)
 
-                vel_max_scale = 1.0
-                vel_rate = vel_max_scale / (stop_max_range - stop_min_range)
-                #print(vel_rate)
-                vel_scale = stop_zone_avr * vel_rate
-                #print(vel_scale)
+                    stop_zone_right_clipped = np.clip(stop_zone_right,stop_min_range,stop_max_range)
+                    #print(len(stop_zone_right_clipped))
+                    # print(np.mean(stop_zone_right_clipped))
 
-                # stop_zone_avr = np.mean(stop_zone)
-                # print(stop_zone_avr)
-                
-                #print("---------------------")
+                    # stop_zone_clipped = (stop_zone_left_clipped + stop_zone_right_clipped)
+                    # stop_zone_clipped = np.concatenate(stop_zone_left_clipped, stop_zone_right_clipped)
+                    stop_zone_clipped = np.hstack((stop_zone_left_clipped, stop_zone_right_clipped))
+                    #print(len(stop_zone_clipped))
+                    #print(stop_zone_clipped)
+                    stop_zone_avr = np.mean(stop_zone_clipped)
+                    #print(stop_zone_avr)
 
-                right_offset = goal.right_offset #0.0 # 2.2 # abitally value
-                left_offset = goal.left_offset #1.2 # abitally value
+                    vel_max_scale = 1.0
+                    vel_rate = vel_max_scale / (stop_max_range - stop_min_range)
+                    #print(vel_rate)
+                    vel_scale = stop_zone_avr * vel_rate
+                    #print(vel_scale)
 
-                # error = (left+left_offset) - (right+right_offset)
-                error = (right+right_offset) - (left+left_offset)
-                # left = msg.ranges[2251]
-                # right = msg.ranges[750]
-                # left = msg.ranges[2251]
-                # right = msg.ranges[375]
-                # left = msg.ranges[1125]
-                # error = left - right
-                # kp = 0.6
-                kp = 3.0    
-                # print(error)
+                    # stop_zone_avr = np.mean(stop_zone)
+                    # print(stop_zone_avr)
+                    
+                    #print("---------------------")
 
-                if error > 0.3:
-                    error = 0.3
-                elif error < -0.3:
-                    error = -0.3
-                else:
-                    error = error
 
-                lin_vel_max = goal.lin_vel_max #0.5
-                ang_vel_max = lin_vel_max * 2
-                ang_vel = kp*error
-                
-                if ang_vel > ang_vel_max:
-                    ang_vel = ang_vel_max
-                elif ang_vel < -ang_vel_max:
-                    ang_vel = -ang_vel_max
-                else:
-                    ang_vel = ang_vel
 
-                # print(ang_vel)
-                
-                distance_to_travel = goal.travel_dist
-                obstacle_stop_distance = goal.obstacle_stop_dist
+                    error = (left_front) - (left_rear)
+                    # left = msg.ranges[2251]
+                    # right = msg.ranges[750]
+                    # left = msg.ranges[2251]
+                    # right = msg.ranges[375]
+                    # left = msg.ranges[1125]
+                    # error = left - right
+                    # kp = 0.6
 
-                # distance_to_travel = 60.10 # [m]
-                # obstacle_stop_distance = 0.7 # [m]
+                    # print(error)
 
-                
+                    lin_vel_max = goal.lin_vel_max
+                    ang_vel_max = lin_vel_max * 2
+                    ang_vel = kp*error
+                    
+                    
+                    distance_to_travel = goal.travel_dist
+                    obstacle_stop_distance = goal.obstacle_stop_dist
 
-                if vel_scale < obstacle_stop_distance:
-                    vel_scale = 0
-                    print('!!! STOP !!!')
-                    self.update_command_vel(0, 0)
-                else:
-                    vel_scale = vel_scale
-                    if self.glob_travel_distance >= distance_to_travel:
+                    # distance_to_travel = 60.10 # [m]
+                    # obstacle_stop_distance = 0.7 # [m]
+
+                    if vel_scale < obstacle_stop_distance:
                         self.update_command_vel(0, 0)
-                        print('!!! Arrived !!!', self.glob_travel_distance)
-                        # TODO
-                        #print('!!! Stop and Kill this node !!!')
-                        text = "Arrived Destination"
-                        task_result = SideWallResult.SUCCESS
-                        success = True
-                        sequence = Sequence.FINISH.value
-                    else:
-                        #print('!!! GO GO GO !!!', self.glob_travel_distance)
-                        self.update_command_vel(vel_scale*lin_vel_max, vel_scale*ang_vel)
+                        vel_scale = 0
+                        print('!!! STOP !!!')
+                    else:                      
+                        vel_scale = vel_scale
+                        if self.glob_travel_distance >= distance_to_travel:
+                            self.update_command_vel(0, 0)
+                            print('!!! Left Wall Tracking - Arrived !!!', self.glob_travel_distance)
+                            text = "Left Wall Tracking - Arrived"
+                            task_result = SideWallResult.SUCCESS
+                            success = True
+                            sequence = Sequence.FINISH.value
+                        else:
+                            print('!!! Left Wall Tracking !!!', self.glob_travel_distance)
+                            self.update_command_vel(vel_scale*lin_vel_max, vel_scale*ang_vel)
 
-
-                #------------ TIMEOUT CHECKING -----------#
-                self.timer_counter = rospy.get_rostime().secs - self.timestmp_begin
-                total_time = self.timer_counter
-                
-                if goal.timeout != SideWallGoal.IGNORE_PARAMETER:
-                    timeout = setTimeOut - rospy.get_rostime().secs
-                    rospy.loginfo("[matrix_sidewall_operation]:Check timeout countdown " + str(timeout))
-                    if rospy.get_rostime().secs > setTimeOut:
-                        text = text + "Timeout"
-                        task_result = SideWallResult.TIME_OUT
-                        sequence = Sequence.ERROR.value
-                        rospy.logerr(text)
-                    else:
-                        pass
-                else:
-                    timeout = SideWallGoal.IGNORE_PARAMETER
-                    # rospy.loginfo("no timeout")
-                
-                # --------------------------------------------------------------------------------------#
-                #
-                #
-                #                           SideWall Following Control END
-                #
-                #---------------------------------------------------------------------------------------#
-
+                    #------------ TIMEOUT CHECKING -----------#
+                    self.timer_counter = rospy.get_rostime().secs - self.timestmp_begin
+                    total_time = self.timer_counter
+                    
+                    if goal.timeout != SideWallGoal.IGNORE_PARAMETER:
+                        timeout = setTimeOut - rospy.get_rostime().secs
+                        rospy.loginfo("[matrix_sidewall_operation]:Check timeout countdown " + str(timeout))
+                        if rospy.get_rostime().secs > setTimeOut:
+                            self.update_command_vel(0, 0)
+                            text = text + "Timeout"
+                            task_result = SideWallResult.TIME_OUT
+                            sequence = Sequence.ERROR.value
+                            rospy.logerr(text)
+                        else:
+                            pass
                         
-                # timeout = goal.timeout - total_time
-                
-                # if goal.timeout != WallfollowingGoal.IGNORE_PARAMETER:
-                #     if timeout > goal.timeout:
-                #         text = "Timeout"
-                #         task_result = WallFollowingResult.TIME_OUT
-                #         sequence = Sequence.ERROR.value
-                #     else:
-                #         pass
+                    else:
+                        timeout = SideWallGoal.IGNORE_PARAMETER
+                        # rospy.loginfo("no timeout")
+                    
+                    # --------------------------------------------------------------------------------------#
+                    #
+                    #
+                    #                           LEFT - SideWall Following Control END
+                    #
+                    #---------------------------------------------------------------------------------------#
 
+                elif ((rightside_wall == True) and (leftside_wall == False)):
+                    # --------------------------------------------------------------------------------------#
+                    #
+                    #
+                    #                           RIGHT - SideWall Following Control Begin
+                    #
+                    #---------------------------------------------------------------------------------------#
+                    # lidar_data = rospy.wait_for_message('/scan_f_raw', LaserScan, timeout=1)
+                    # self.msg = lidar_data
+                    right_rear = self.msg.ranges[225]
+                    right_front = self.msg.ranges[315]
+
+                    stop_max_range = 3.0
+                    stop_min_range = 0.01
+
+                    stop_zone_left = np.array(self.msg.ranges[0:45]) #SMR200
+                    # stop_zone_left = np.array(self.msg.ranges[0:300]) #SDR100
+                    # print(len(stop_zone_left))
+                    # print(stop_zone_left)
+
+                    stop_zone_left_clipped = np.clip(stop_zone_left,stop_min_range,stop_max_range)
+                    #print(len(stop_zone_left_clipped))
+                    #print(stop_zone_left_clipped)
+                    #print(np.mean(stop_zone_left_clipped))
+                    
+                    stop_zone_right = np.array(self.msg.ranges[340:358]) #SMR200
+                    # stop_zone_right = np.array(self.msg.ranges[3300:3600]) #SDR100
+                    # print(len(stop_zone_right))
+                    # print(stop_zone_right)
+
+                    stop_zone_right_clipped = np.clip(stop_zone_right,stop_min_range,stop_max_range)
+                    #print(len(stop_zone_right_clipped))
+                    # print(np.mean(stop_zone_right_clipped))
+
+                    # stop_zone_clipped = (stop_zone_left_clipped + stop_zone_right_clipped)
+                    # stop_zone_clipped = np.concatenate(stop_zone_left_clipped, stop_zone_right_clipped)
+                    stop_zone_clipped = np.hstack((stop_zone_left_clipped, stop_zone_right_clipped))
+                    #print(len(stop_zone_clipped))
+                    #print(stop_zone_clipped)
+                    stop_zone_avr = np.mean(stop_zone_clipped)
+                    #print(stop_zone_avr)
+
+                    vel_max_scale = 1.0
+                    vel_rate = vel_max_scale / (stop_max_range - stop_min_range)
+                    #print(vel_rate)
+                    vel_scale = stop_zone_avr * vel_rate
+                    #print(vel_scale)
+
+                    # stop_zone_avr = np.mean(stop_zone)
+                    # print(stop_zone_avr)
+                    
+                    #print("---------------------")
+
+                    # error = (left+left_offset) - (right+right_offset)
+                    error = (right_rear) - (right_front)
+                    # left = msg.ranges[2251]
+                    # right = msg.ranges[750]
+                    # left = msg.ranges[2251]
+                    # right = msg.ranges[375]
+                    # left = msg.ranges[1125]
+                    # error = left - right
+                    # kp = 0.6
+ 
+                    # print(error)
+
+                    lin_vel_max = goal.lin_vel_max
+                    ang_vel_max = lin_vel_max * 2
+                    ang_vel = kp*error
+                    
+                    distance_to_travel = goal.travel_dist
+                    obstacle_stop_distance = goal.obstacle_stop_dist
+
+                    # distance_to_travel = 60.10 # [m]
+                    # obstacle_stop_distance = 0.7 # [m]
+
+                    if vel_scale < obstacle_stop_distance:
+                        self.update_command_vel(0, 0)
+                        vel_scale = 0
+                        print('!!! STOP !!!')
+                    else:
+                        vel_scale = vel_scale
+                        if self.glob_travel_distance >= distance_to_travel:
+                            self.update_command_vel(0, 0)
+                            print('!!! Right Wall Tracking - Arrived !!!', self.glob_travel_distance)
+                            text = "Right Wall Tracking - Arrived"
+                            task_result = SideWallResult.SUCCESS
+                            success = True
+                            sequence = Sequence.FINISH.value
+                        else:
+                            print('!!! Right Wall Tracking !!!', self.glob_travel_distance)
+                            self.update_command_vel(vel_scale*lin_vel_max, vel_scale*ang_vel)
+
+
+                    #------------ TIMEOUT CHECKING -----------#
+                    self.timer_counter = rospy.get_rostime().secs - self.timestmp_begin
+                    total_time = self.timer_counter
+                    
+                    if goal.timeout != SideWallGoal.IGNORE_PARAMETER:
+                        timeout = setTimeOut - rospy.get_rostime().secs
+                        rospy.loginfo("[matrix_sidewall_operation]:Check timeout countdown " + str(timeout))
+                        if rospy.get_rostime().secs > setTimeOut:
+                            self.update_command_vel(0, 0)
+                            text = text + "Timeout"
+                            task_result = SideWallResult.TIME_OUT
+                            sequence = Sequence.ERROR.value
+                            rospy.logerr(text)
+                        else:
+                            pass
+                    else:
+                        timeout = SideWallGoal.IGNORE_PARAMETER
+                        # rospy.loginfo("no timeout")
+                    
+                    # --------------------------------------------------------------------------------------#
+                    #
+                    #
+                    #                           RIGHT - SideWall Following Control END
+                    #
+                    #---------------------------------------------------------------------------------------#
+                else:
+                    self.update_command_vel(0, 0)
+                    text = "ERROR - please choose LEFT-wall or RIGHT-wall"
+                    task_result = SideWallResult.PREEMTING
+                    success = True
+                    sequence = Sequence.FINISH.value
+                    rospy.logerr(text)
 
             elif sequence == Sequence.ERROR.value:
                 self.update_command_vel(0, 0)
@@ -311,6 +432,7 @@ class ActionServer():
             
             elif sequence == Sequence.PAUSE.value:
                 if self.current_robotmode != RobotMode.PAUSE:
+                    self.update_command_vel(0, 0)
                     sequence = period_state
                     text = period_text
                     period_text = ""
@@ -320,12 +442,14 @@ class ActionServer():
                 # break
 
             elif sequence == Sequence.FINISH.value:
+                self.update_command_vel(0, 0)
                 text = "FINISH"
                 finish = True
                 success = True
                 # break
                 
             else:
+                self.update_command_vel(0, 0)
                 break
             
             #//**********************************************************//
@@ -334,6 +458,7 @@ class ActionServer():
             #//                                                          //
             #//**********************************************************//
             if self.current_robotmode == RobotMode.PAUSE and sequence != Sequence.PAUSE.value:
+                self.update_command_vel(0, 0)
                 period_state = sequence
                 period_text = text
                 sequence = Sequence.PAUSE.value
