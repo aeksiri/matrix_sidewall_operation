@@ -191,10 +191,9 @@ class ActionServer():
                     left_rear = self.msg.ranges[135]
 
                     stop_max_range = 3.0
-                    stop_min_range = 0.01
+                    stop_min_range = 0.6
 
-                    stop_zone_left = np.array(self.msg.ranges[0:45]) #SMR200
-                    # stop_zone_left = np.array(self.msg.ranges[0:300]) #SDR100
+                    stop_zone_left = np.array(self.msg.ranges[0:45])
                     # print(len(stop_zone_left))
                     # print(stop_zone_left)
 
@@ -203,13 +202,12 @@ class ActionServer():
                     #print(stop_zone_left_clipped)
                     #print(np.mean(stop_zone_left_clipped))
                     
-                    stop_zone_right = np.array(self.msg.ranges[340:358]) #SMR200
-                    # stop_zone_right = np.array(self.msg.ranges[3300:3600]) #SDR100
+                    stop_zone_right = np.array(self.msg.ranges[315:358])
                     # print(len(stop_zone_right))
                     # print(stop_zone_right)
 
                     stop_zone_right_clipped = np.clip(stop_zone_right,stop_min_range,stop_max_range)
-                    #print(len(stop_zone_right_clipped))
+                    # print(len(stop_zone_right_clipped))
                     # print(np.mean(stop_zone_right_clipped))
 
                     # stop_zone_clipped = (stop_zone_left_clipped + stop_zone_right_clipped)
@@ -312,10 +310,9 @@ class ActionServer():
                     right_front = self.msg.ranges[315]
 
                     stop_max_range = 3.0
-                    stop_min_range = 0.01
+                    stop_min_range = 0.6
 
-                    stop_zone_left = np.array(self.msg.ranges[0:45]) #SMR200
-                    # stop_zone_left = np.array(self.msg.ranges[0:300]) #SDR100
+                    stop_zone_left = np.array(self.msg.ranges[0:45])
                     # print(len(stop_zone_left))
                     # print(stop_zone_left)
 
@@ -324,8 +321,7 @@ class ActionServer():
                     #print(stop_zone_left_clipped)
                     #print(np.mean(stop_zone_left_clipped))
                     
-                    stop_zone_right = np.array(self.msg.ranges[340:358]) #SMR200
-                    # stop_zone_right = np.array(self.msg.ranges[3300:3600]) #SDR100
+                    stop_zone_right = np.array(self.msg.ranges[315:358])
                     # print(len(stop_zone_right))
                     # print(stop_zone_right)
 
