@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="matrix_sidewall_operation" type="sidewall_action" name="matrix_sidewall_operation" output="screen" respawn="false" respawn_delay="0">
+    </node>    
+</launch>
