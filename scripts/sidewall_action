@@ -176,6 +176,10 @@ class ActionServer():
                 leftside_wall = goal.left_wall
 
                 kp = 3.0
+                vel_max_scale = 1.0
+
+                stop_max_range = 2.0
+                stop_min_range = 0.01
 
                 if ((leftside_wall == True) and (rightside_wall == False)):
                     # --------------------------------------------------------------------------------------#
@@ -187,11 +191,10 @@ class ActionServer():
                     # lidar_data = rospy.wait_for_message('/scan_f_raw', LaserScan, timeout=1)
                     # self.msg = lidar_data
                     # print(len(self.msg.ranges))
-                    left_front = self.msg.ranges[45]
-                    left_rear = self.msg.ranges[135]
-
-                    stop_max_range = 3.0
-                    stop_min_range = 0.6
+                    # left_front = self.msg.ranges[45]
+                    # left_rear = self.msg.ranges[135]
+                    left_front = self.msg.ranges[55]
+                    left_rear = self.msg.ranges[125]
 
                     stop_zone_left = np.array(self.msg.ranges[0:45])
                     # print(len(stop_zone_left))
@@ -218,7 +221,6 @@ class ActionServer():
                     stop_zone_avr = np.mean(stop_zone_clipped)
                     #print(stop_zone_avr)
 
-                    vel_max_scale = 1.0
                     vel_rate = vel_max_scale / (stop_max_range - stop_min_range)
                     #print(vel_rate)
                     vel_scale = stop_zone_avr * vel_rate
@@ -229,16 +231,7 @@ class ActionServer():
                     
                     #print("---------------------")
 
-
-
                     error = (left_front) - (left_rear)
-                    # left = msg.ranges[2251]
-                    # right = msg.ranges[750]
-                    # left = msg.ranges[2251]
-                    # right = msg.ranges[375]
-                    # left = msg.ranges[1125]
-                    # error = left - right
-                    # kp = 0.6
 
                     # print(error)
 
@@ -306,11 +299,10 @@ class ActionServer():
                     #---------------------------------------------------------------------------------------#
                     # lidar_data = rospy.wait_for_message('/scan_f_raw', LaserScan, timeout=1)
                     # self.msg = lidar_data
-                    right_rear = self.msg.ranges[225]
-                    right_front = self.msg.ranges[315]
-
-                    stop_max_range = 3.0
-                    stop_min_range = 0.6
+                    # right_rear = self.msg.ranges[225]
+                    # right_front = self.msg.ranges[315]
+                    right_front = self.msg.ranges[305]
+                    right_rear = self.msg.ranges[235]
 
                     stop_zone_left = np.array(self.msg.ranges[0:45])
                     # print(len(stop_zone_left))
@@ -337,7 +329,6 @@ class ActionServer():
                     stop_zone_avr = np.mean(stop_zone_clipped)
                     #print(stop_zone_avr)
 
-                    vel_max_scale = 1.0
                     vel_rate = vel_max_scale / (stop_max_range - stop_min_range)
                     #print(vel_rate)
                     vel_scale = stop_zone_avr * vel_rate
@@ -350,13 +341,6 @@ class ActionServer():
 
                     # error = (left+left_offset) - (right+right_offset)
                     error = (right_rear) - (right_front)
-                    # left = msg.ranges[2251]
-                    # right = msg.ranges[750]
-                    # left = msg.ranges[2251]
-                    # right = msg.ranges[375]
-                    # left = msg.ranges[1125]
-                    # error = left - right
-                    # kp = 0.6
  
                     # print(error)
 
